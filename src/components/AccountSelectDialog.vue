@@ -2,10 +2,12 @@
   <el-dialog
     v-model="visibleInner"
     title="账户信息选择"
-    fullscreen
+    width="90%"
+    append-to-body
     destroy-on-close
     :close-on-click-modal="false"
     class="account-dialog"
+    top="5vh"
   >
     <div class="toolbar">
       <div class="left">
@@ -27,7 +29,7 @@
       ref="tableRef"
       :data="pagedData"
       border
-      height="70vh"
+      height="60vh"
       row-key="id"
       :reserve-selection="true"
       @selection-change="onSelectionChange"
@@ -45,7 +47,7 @@
       <el-table-column prop="lastTime" label="最近投放时间" width="200" />
     </el-table>
 
-    <div class="pagination" style="display: flex; justify-content: center; align-items: center; margin-top: 12px;">
+    <div class="pagination">
       <el-pagination
         background
         layout="prev, pager, next, jumper, ->, total, sizes"
@@ -59,10 +61,10 @@
     </div>
 
     <template #footer>
-      <span class="dialog-footer" style="width: 100%; display: flex; justify-content: center; align-items: center;">
+      <div class="dialog-footer">
         <el-button @click="visibleInner = false">取消</el-button>
         <el-button type="primary" @click="confirm">确认</el-button>
-      </span>
+      </div>
     </template>
   </el-dialog>
   </template>
@@ -164,28 +166,72 @@
   .account-dialog :deep(.el-dialog__header) {
     border-bottom: 1px solid var(--el-border-color);
     margin-right: 0;
-    padding: 12px 16px;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
   }
+  
+  .account-dialog :deep(.el-dialog__title) {
+    font-size: 18px;
+    font-weight: 600;
+    color: #303133;
+  }
+  
+  .account-dialog :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+  
+  .account-dialog :deep(.el-dialog__footer) {
+    border-top: 1px solid var(--el-border-color);
+    padding: 16px 20px;
+  }
+  
   .toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 0 12px;
+    padding: 0 0 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e0e3eb;
   }
+  
   .left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
   }
+  
   .right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
   }
+  
   .pagination {
     display: flex;
-    justify-content: flex-end;
-    padding-top: 12px;
+    justify-content: center;
+    padding-top: 16px;
+  }
+  
+  .account-dialog :deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .account-dialog :deep(.el-table th) {
+    background-color: #f5f7fa;
+    font-weight: 600;
+  }
+  
+  .account-dialog :deep(.el-button) {
+    font-weight: 500;
+  }
+  
+  .dialog-footer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
   }
   </style>
   
