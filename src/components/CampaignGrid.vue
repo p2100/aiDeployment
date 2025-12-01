@@ -15,8 +15,13 @@
           :index="index"
           :select-unit-ids="selectUnitIds"
           :ad-unit-map="adUnitMap"
+          :site="site"
+          :method="method"
+          :account-user-info="accountUserInfo"
+          :campaignConfigs="campaignConfigs"
           @delete="handleDelete"
           @clear-select="emit('clear-select')"
+          @sync-cta="handleSyncCta"
         />
       </el-col>
 
@@ -32,10 +37,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import CampaignCard from './CampaignCard.vue'
+import { indexApi } from "@api/index";
+import axios from "axios";
+
 
 const props = defineProps({
   campaignSets: {
@@ -49,12 +57,71 @@ const props = defineProps({
   adUnitMap: {
     type: Map,
     default: () => new Map()
+  },
+  site: {
+    type: String,
+    default: ''
+  },
+  method: {
+    type: String,
+    default: 'DC'
+  },
+  accountUserInfo: {
+    type: Object,
+    default: null
   }
 })
 
 const emit = defineEmits(['add-new', 'delete', 'clear-select'])
 
 const cardRefs = ref([])
+
+const campaignConfigs = ref([])
+
+// 获取 Campaign 配置
+const getCampaignConfigs = async () => {
+  if (!props.accountUserInfo || !props.site || !props.method) {
+    return
+  }
+  
+  try {
+    const res = await indexApi.getCampaignConfigs({
+      campaign_type: props.method,
+      site: props.site,
+      create_user: props.accountUserInfo.username
+    })
+    // const res = await axios.post("http://new.sp.com/material_square/auto_ads/placement/get_campaign_configs", {
+    //   campaign_type: props.method,
+    //   site: props.site,
+    //   create_user: props.accountUserInfo.username
+    // })
+    campaignConfigs.value = res.result || []
+  } catch (error) {
+    console.error('获取 Campaign 配置失败:', error)
+    campaignConfigs.value = []
+  }
+}
+
+// 监听 accountUserInfo 变化
+watch(() => props.accountUserInfo, async (newVal) => {
+  if (newVal) {
+    await getCampaignConfigs()
+  }
+}, { immediate: true, deep: true })
+
+// 监听 site 和 method 变化，重新获取配置
+watch([() => props.site, () => props.method], async () => {
+  if (props.accountUserInfo && props.site && props.method) {
+    await getCampaignConfigs()
+  }
+})
+
+// 组件挂载时获取配置
+onMounted(() => {
+  if (props.accountUserInfo && props.site && props.method) {
+    getCampaignConfigs()
+  }
+})
 
 const handleAddNew = () => {
   emit('add-new')
@@ -89,6 +156,18 @@ const syncAllDataToOtherCards = (sourceData, sourceCardRef) => {
     }
   })
   ElMessage.success('已同步所有数据到其他卡片')
+}
+
+// 同步号召性文字到其他卡片
+const handleSyncCta = (ctaData) => {
+  const { call_to_action_text, call_to_action_lang, sourceIndex } = ctaData
+  
+  props.campaignSets.forEach((item, index) => {
+    if (index !== sourceIndex) {
+      item.call_to_action_text = call_to_action_text
+      item.call_to_action_lang = call_to_action_lang
+    }
+  })
 }
 
 defineExpose({ syncConfigToAllCards, syncAllDataToOtherCards })

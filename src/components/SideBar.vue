@@ -18,22 +18,6 @@
         
         <!-- 筛选条件面板 -->
         <div class="filter-dropdown">
-          <div class="filter-section">
-            <div class="filter-label">language</div>
-            <el-checkbox-group v-model="filters.language">
-              <el-checkbox label="US">US</el-checkbox>
-              <el-checkbox label="CN">CN</el-checkbox>
-            </el-checkbox-group>
-          </div>
-
-          <div class="filter-section">
-            <div class="filter-label">tag</div>
-            <el-checkbox-group v-model="filters.tag">
-              <el-checkbox label="animal">animal</el-checkbox>
-              <el-checkbox label="nature">nature</el-checkbox>
-              <el-checkbox label="food">food</el-checkbox>
-            </el-checkbox-group>
-          </div>
 
           <div class="filter-section">
             <div class="filter-label">designer_name</div>
@@ -58,7 +42,7 @@
           :key="image.id"
           :class="['image-item', { selected: image.selected }]"
         >
-          <img :src="image.url" :alt="image.tag" />
+          <img :src="image.material_urls[0].url" :alt="image.material_urls[0].url" />
           
           <!-- 顶部标签和多选框 -->
           <div class="image-header">
@@ -67,10 +51,10 @@
               @change="onCheckboxChange"
               @click.stop
             />
-            <div class="image-tags">
+            <!-- <div class="image-tags">
               <el-tag size="small" type="success">{{ image.tag }}</el-tag>
               <el-tag size="small" type="info">{{ image.language }}</el-tag>
-            </div>
+            </div> -->
           </div>
           
           <!-- 悬浮操作按钮 -->
@@ -93,41 +77,96 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import ImageDetailDialog from './ImageDetailDialog.vue'
-import { useMaterial } from '@/composables'
+import { indexApi } from '@api/index'
 
-// 使用素材管理 composable
-const { 
-  materials, 
-  loading, 
-  filters, 
-  filteredMaterials,
-  fetchMaterials, 
-  getSelectedMaterials,
-  toggleSelectAll,
-  updateMaterial 
-} = useMaterial()
+// 接收站点参数
+const props = defineProps({
+  site: {
+    type: String,
+    default: ''
+  }
+})
+
+// 素材数据
+const materials = ref([])
+const loading = ref(false)
+const filters = ref({
+  language: [],
+  tag: [],
+  designer: []
+})
 
 // 对话框状态
 const showDetailDialog = ref(false)
 const dialogMode = ref('view') // 'view' 或 'edit'
 const currentImage = ref({})
 
-// 组件挂载时获取素材列表
-onMounted(async () => {
-  await fetchMaterials()
+// 获取素材数据
+const fetchMaterials = async () => {
+  if (!props.site) return
+  
+  loading.value = true
+  try {
+    const res = await indexApi.getMaterials({
+      site: props.site,
+    })
+    const rawMaterials = res.result || []
+    // 为每个素材的 detail 添加 selected 属性（默认第一个被选中）
+    materials.value = rawMaterials.map(material => {
+      if (material.detail && material.detail.length > 0) {
+        return {
+          ...material,
+          detail: material.detail.map((item, index) => ({
+            ...item,
+            selected: item.selected !== undefined ? item.selected : (index === 0)
+          }))
+        }
+      }
+      return material
+    })
+  } catch (error) {
+    console.error('获取素材失败:', error)
+    materials.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听站点变化，重新获取数据
+watch(() => props.site, (newSite) => {
+  if (newSite) {
+    fetchMaterials()
+  } else {
+    materials.value = []
+  }
+}, { immediate: true })
+
+// 组件挂载时获取数据
+onMounted(() => {
+  if (props.site) {
+    fetchMaterials()
+  }
 })
 
-// 监听筛选条件变化
-watch(filters, () => {
-  // 可以在这里添加额外的筛选逻辑
-}, { deep: true })
+// 筛选后的素材
+const filteredMaterials = computed(() => {
+  return materials.value.filter(item => {
+    const languageMatch = filters.value.language.length === 0 || filters.value.language.includes(item.language)
+    const tagMatch = filters.value.tag.length === 0 || filters.value.tag.includes(item.tag)
+    const designerMatch = filters.value.designer.length === 0 || filters.value.designer.includes(item.designer || item.designer_name)
+    return languageMatch && tagMatch && designerMatch
+  })
+})
 
 // 全选/取消全选
 const selectAll = () => {
-  toggleSelectAll()
+  const hasSelected = materials.value.some(item => item.selected)
+  materials.value.forEach(item => {
+    item.selected = !hasSelected
+  })
 }
 
 // 多选框变化时的处理
@@ -151,44 +190,40 @@ const viewImage = (image) => {
 
 // 保存图片信息
 const handleSaveImage = async (data) => {
-  await updateMaterial(currentImage.value.id, data)
+  // 更新 materials 中对应的数据
+  const index = materials.value.findIndex(item => (item._id || item.id) === (data._id || data.id))
+  if (index !== -1) {
+    // 更新数据，保留 selected 状态
+    const wasSelected = materials.value[index].selected
+    materials.value[index] = {
+      ...data,
+      selected: wasSelected
+    }
+  }
   showDetailDialog.value = false
 }
 
 // 获取选中的图片
 const getSelectedImages = () => {
-  return getSelectedMaterials()
+  return materials.value.filter(item => item.selected)
 }
 
-// 获取选中的单元 IDs (对应 SP 项目)
+// 获取选中的单元 IDs
 const getSelectedUnitIds = () => {
-  const selected = getSelectedMaterials()
+  const selected = materials.value.filter(item => item.selected)
   return selected.map(item => item._id || item.id)
 }
 
-// 创建 adUnitMap (对应 SP 项目)
+// 创建 adUnitMap（基于所有 materials，确保选中的单元都能找到数据）
+// 直接使用侧边栏的数据格式，不进行转换
 const adUnitMap = computed(() => {
   const map = new Map()
-  filteredMaterials.value.forEach(item => {
+  // 使用所有 materials，而不是 filteredMaterials，确保选中的单元都能在 map 中找到
+  // 直接使用原始数据格式，与侧边栏数据格式一致
+  materials.value.forEach(item => {
     const id = item._id || item.id
-    map.set(id, {
-      _id: id,
-      project: item.project || '',
-      language: item.language || '',
-      tag: item.tag || '',
-      designer_name: item.designer || item.designer_name || '',
-      material_info: [{
-        origin_square: [item.url],
-        origin_long: [item.url],
-        material_id: item.material_id || 0
-      }],
-      lp_url: item.lp_url || '',
-      headlines: item.headlines || [],
-      descriptions: item.descriptions || [],
-      business_name: item.business_name || '',
-      ad_name: item.ad_name || '',
-      category: 'image'
-    })
+    // 直接使用原始数据对象，保持与侧边栏数据格式一致
+    map.set(id, item)
   })
   return map
 })

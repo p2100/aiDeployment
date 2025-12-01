@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 
 // 创建 axios 实例
 const request = axios.create({
-  baseURL: '/api',  // 使用代理配置
+  baseURL: '/',  // 使用代理配置
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json;charset=UTF-8'

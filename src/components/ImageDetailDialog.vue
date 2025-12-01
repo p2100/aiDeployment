@@ -13,23 +13,15 @@
         <div class="detail-label">素材</div>
         <div class="detail-value">
           <div class="material-list">
-            <img 
-              v-for="(img, index) in materials" 
-              :key="index"
-              :src="img"
-              class="material-item"
-            />
+            <papaya-image
+              v-for="(img, index) in imageData.material_urls" 
+              :src="img.url"
+              :preview="[img.url]"
+              fit="contain"
+              width="auto"
+              height= "100"
+            ></papaya-image>
           </div>
-        </div>
-      </div>
-
-      <!-- LP URL -->
-      <div class="detail-row">
-        <div class="detail-label">lp url</div>
-        <div class="detail-value">
-          <a :href="detailData.lpUrl" target="_blank" class="link">
-            {{ detailData.lpUrl }}
-          </a>
         </div>
       </div>
 
@@ -40,7 +32,7 @@
           <!-- 查看模式 -->
           <template v-if="mode === 'view'">
             <div v-for="(headline, index) in detailData.headlines" :key="index" class="text-item">
-              {{ headline }}
+              {{ headline || '(空)' }}
             </div>
           </template>
           <!-- 编辑模式 -->
@@ -49,9 +41,8 @@
               v-for="(headline, index) in detailData.headlines"
               :key="index"
               v-model="detailData.headlines[index]"
-              type="textarea"
-              :rows="2"
-              class="edit-textarea"
+              :placeholder="`headline ${index + 1}`"
+              class="edit-input"
             />
           </template>
         </div>
@@ -64,7 +55,7 @@
           <!-- 查看模式 -->
           <template v-if="mode === 'view'">
             <div v-for="(desc, index) in detailData.descriptions" :key="index" class="text-item">
-              {{ desc }}
+              {{ desc || '(空)' }}
             </div>
           </template>
           <!-- 编辑模式 -->
@@ -73,9 +64,8 @@
               v-for="(desc, index) in detailData.descriptions"
               :key="index"
               v-model="detailData.descriptions[index]"
-              type="textarea"
-              :rows="2"
-              class="edit-textarea"
+              :placeholder="`description ${index + 1}`"
+              class="edit-input"
             />
           </template>
         </div>
@@ -87,16 +77,83 @@
         <div class="detail-value">
           <!-- 查看模式 -->
           <template v-if="mode === 'view'">
-            <div class="text-item">{{ detailData.content }}</div>
+            <div v-for="(content, index) in detailData.content" :key="index" class="text-item">
+              {{ content || '(空)' }}
+            </div>
           </template>
           <!-- 编辑模式 -->
           <template v-else>
             <el-input
-              v-model="detailData.content"
-              type="textarea"
-              :rows="4"
-              placeholder="请输入内容"
+              v-for="(content, index) in detailData.content"
+              :key="index"
+              v-model="detailData.content[index]"
+              :placeholder="`content ${index + 1}`"
+              class="edit-input"
             />
+          </template>
+        </div>
+      </div>
+
+      <!-- Detail 选择 -->
+      <div class="detail-row">
+        <div class="detail-label">Detail</div>
+        <div class="detail-value">
+          <!-- 查看模式 -->
+          <template v-if="mode === 'view'">
+            <div v-if="detailData.detail && detailData.detail.length > 0">
+              <div v-for="(item, index) in detailData.detail" :key="index">
+                <div v-if="item.selected" class="selected-detail-item">
+                  <div class="detail-header">
+                    <el-text><strong>{{ item.payload?.title || `Detail ${index + 1}` }}</strong></el-text>
+                    <el-tag size="small" type="success">Score: {{ item.score?.toFixed(4) || 'N/A' }}</el-tag>
+                  </div>
+                  <div v-if="item.payload" class="detail-payload">
+                    <el-text type="info" size="small">
+                      <strong>Tag:</strong> {{ item.payload.tag || 'N/A' }}<br/>
+                      <strong>Description:</strong> {{ item.payload.description || 'N/A' }}<br/>
+                      <strong>Video ID:</strong> {{ item.payload.video_id || 'N/A' }}<br/>
+                      <strong>Type:</strong> {{ item.payload.type || 'N/A' }}
+                    </el-text>
+                  </div>
+                </div>
+              </div>
+              <div v-if="!detailData.detail.some(item => item.selected)" class="text-item">
+                <el-text type="info">未选择任何 Detail</el-text>
+              </div>
+            </div>
+            <div v-else class="text-item">
+              <el-text type="info">该素材没有 detail 数据</el-text>
+            </div>
+          </template>
+          <!-- 编辑模式 -->
+          <template v-else>
+            <div v-if="detailData.detail && detailData.detail.length > 0" class="detail-list">
+              <div
+                v-for="(item, index) in detailData.detail"
+                :key="index"
+                class="detail-item"
+                :class="{ 'detail-selected': item.selected }"
+                @click="selectDetail(index)"
+              >
+                <div class="detail-header">
+                  <el-checkbox
+                    :model-value="item.selected"
+                    @change="selectDetail(index)"
+                  />
+                  <span class="detail-title">{{ item.payload?.title || `Detail ${index + 1}` }}</span>
+                  <el-tag size="small" type="info">Score: {{ item.score?.toFixed(4) || 'N/A' }}</el-tag>
+                </div>
+                <div v-if="item.payload" class="detail-content">
+                  <el-text type="info" size="small">
+                    <strong>Tag:</strong> {{ item.payload.tag || 'N/A' }}<br/>
+                    <strong>Description:</strong> {{ item.payload.description || 'N/A' }}
+                  </el-text>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-item">
+              <el-text type="info">该素材没有 detail 数据</el-text>
+            </div>
           </template>
         </div>
       </div>
@@ -113,6 +170,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import PapayaImage from "@components/papaya-image.vue";
 
 const props = defineProps({
   modelValue: {
@@ -140,9 +198,9 @@ const dialogVisible = computed({
 // 详情数据
 const detailData = ref({
   lpUrl: '',
-  headlines: [],
-  descriptions: [],
-  content: ''
+  headlines: ['', '', '', '', ''],
+  descriptions: ['', '', '', '', ''],
+  content: ['', '', '', '', '']
 })
 
 // 素材列表（模拟多张图片）
@@ -154,36 +212,65 @@ const materials = computed(() => {
   return []
 })
 
+// 选择 detail
+const selectDetail = (index) => {
+  if (!detailData.value.detail || !detailData.value.detail[index]) {
+    return;
+  }
+  
+  // 取消所有选中状态
+  detailData.value.detail.forEach(item => {
+    item.selected = false;
+  });
+  
+  // 设置当前项为选中
+  detailData.value.detail[index].selected = true;
+};
+
+// 初始化数组，确保有 5 个元素
+const initArray = (arr, length = 5) => {
+  if (!Array.isArray(arr)) {
+    return Array(length).fill('')
+  }
+  const result = [...arr]
+  while (result.length < length) {
+    result.push('')
+  }
+  return result.slice(0, length)
+}
+
 // 监听 imageData 变化，更新详情数据
 watch(() => props.imageData, (newData) => {
-  if (newData && newData.id) {
+  if (newData) {
+    // 使用实际的数据结构
     detailData.value = {
-      lpUrl: 'https://playtoys.tv/lp/colorful_ducks_and_animal_friends_1763985458893.html',
-      headlines: [
-        'Explore Toyland by Kids Videos',
-        'Kid-Friendly Toy Video World',
-        'Kids Playtime with Toy Videos',
-        'Learn with Colorful Toy Videos',
-        'Free Educational Toy Videos'
-      ],
-      descriptions: [
-        'Explore Toyland with Kids Videos',
-        'Online & Safe Playground of Toy Videos Just Designed for Kids Learning',
-        'Play & Learn with Kids Toy Videos',
-        'Best Toddler Learning Toy Video Online Site for Kids Learning',
-        'Funny Playtime with Toy Videos for Kids'
-      ],
-      content: 'This is a sample content for the advertisement. It contains detailed information about the toy videos and educational materials for kids.'
+      lpUrl: newData.lp_url || '',
+      headlines: initArray(newData.headlines, 5),
+      descriptions: initArray(newData.descriptions, 5),
+      content: initArray(newData.long_headlines || newData.content, 5),
+      // 处理 detail，确保每项都有 selected 属性
+      detail: newData.detail ? newData.detail.map((item, index) => ({
+        ...item,
+        selected: item.selected !== undefined ? item.selected : (index === 0) // 默认第一个被选中
+      })) : []
     }
   }
-}, { immediate: true })
+}, { immediate: true, deep: true })
 
 const handleClose = () => {
   dialogVisible.value = false
 }
 
 const handleSave = () => {
-  emit('save', detailData.value)
+  // 保存时，更新原始数据
+  const savedData = {
+    ...props.imageData,
+    headlines: detailData.value.headlines,
+    descriptions: detailData.value.descriptions,
+    long_headlines: detailData.value.content, // content 对应 long_headlines
+    detail: detailData.value.detail
+  }
+  emit('save', savedData)
   handleClose()
 }
 </script>
@@ -254,6 +341,14 @@ const handleSave = () => {
   color: #606266;
 }
 
+.edit-input {
+  margin-bottom: 12px;
+}
+
+.edit-input:last-child {
+  margin-bottom: 0;
+}
+
 .edit-textarea {
   margin-bottom: 12px;
 }
@@ -266,6 +361,68 @@ const handleSave = () => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.detail-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.detail-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    background: #f5f7fa;
+    border-color: #409eff;
+  }
+
+  &.detail-selected {
+    background: #ecf5ff;
+    border-color: #409eff;
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .detail-title {
+      flex: 1;
+      font-weight: 600;
+    }
+  }
+
+  .detail-content {
+    margin-top: 8px;
+    padding-left: 24px;
+  }
+}
+
+.selected-detail-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #f0f9ff;
+  border: 1px solid #409eff;
+  border-radius: 4px;
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .detail-payload {
+    margin-top: 8px;
+    padding-left: 8px;
+    line-height: 1.8;
+  }
 }
 </style>
 

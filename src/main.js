@@ -1,9 +1,14 @@
-import { createApp } from 'vue'
+import { createApp, defineAsyncComponent } from 'vue'
 import './style.css'
 import App from './App.vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 
+const Index = defineAsyncComponent(() => import("./views/index.vue"));
+
 const app = createApp(App)
+
+app.component("index", Index);
+
 app.use(ElementPlus)
 app.mount('#app')

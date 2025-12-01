@@ -5,31 +5,42 @@
       <div class="select-group">
         <div class="select-item">
           <span class="select-label">站点：</span>
-          <el-select v-model="selectedSite" placeholder="请选择站点" style="width: 180px">
-            <el-option label="PT" value="PT" />
-            <el-option label="TK" value="TK" />
-            <el-option label="FB" value="FB" />
-            <el-option label="GG" value="GG" />
+          <el-select
+            v-model="selectedSite"
+            placeholder="请选择站点"
+            style="width: 180px"
+            filterable
+          >
+            <el-option
+              v-for="item in adUnitCopy"
+              :key="item.abbr"
+              :label="item.abbr"
+              :value="item.abbr"
+            />
           </el-select>
         </div>
         <div class="select-item">
           <span class="select-label">投放方式：</span>
-          <el-select v-model="selectedMethod" placeholder="请选择投放方式" style="width: 180px">
+          <el-select
+            v-model="selectedMethod"
+            placeholder="请选择投放方式"
+            style="width: 180px"
+          >
             <el-option label="DC" value="DC" />
-            <el-option label="RC" value="RC" />
-            <el-option label="Auto" value="Auto" />
           </el-select>
         </div>
       </div>
       <div class="logo-section">
         <span class="logo-label">logo:</span>
         <div class="logo-list">
-          <div 
-            v-for="logoId in selectedLogos" 
-            :key="logoId"
-            class="logo-icon"
-          >
-            <img :src="getLogoUrl(logoId)" alt="logo" />
+          <div v-for="logoId in selectedLogos" :key="logoId" class="logo-icon">
+            <papaya-image
+              :src="`https://static.spga.xyz/${logoId}`"
+              :preview="[`https://static.spga.xyz/${logoId}`]"
+              fit="contain"
+              width="36"
+              height="36"
+            ></papaya-image>
             <div class="logo-delete" @click.stop="removeLogo(logoId)">
               <el-icon><Close /></el-icon>
             </div>
@@ -39,14 +50,19 @@
           </div>
         </div>
       </div>
-      <el-button type="primary" @click="openAccountDialog"
-        >账户信息</el-button
-      >
+      <el-button type="primary" @click="openAccountDialog">
+        账户信息
+        <span v-if="accountSelectedCount > 0" class="account-count">
+          ({{ accountSelectedCount }})
+        </span>
+      </el-button>
       <el-button type="success" @click="handleSubmit">提交</el-button>
     </div>
   </el-header>
   <AccountSelectDialog
     v-model="accountDialogVisible"
+    :site="selectedSite"
+    :selected-infos="accountSelectedInfos"
     @confirm="onAccountConfirm"
   />
   <CampaignConfigDialog
@@ -56,65 +72,76 @@
   <LogoSelectDialog
     v-model="logoDialogVisible"
     :selected-logos="selectedLogos"
+    :site="selectedSite"
     @confirm="onLogoConfirm"
   />
 </template>
 
 <script setup>
-import { ref, onMounted, computed, inject } from "vue";
-import { Plus, Close } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ref, inject, onMounted, watch, computed } from "vue";
+import { Plus, Close } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import AccountSelectDialog from "@components/AccountSelectDialog.vue";
 import LogoSelectDialog from "@components/LogoSelectDialog.vue";
-import { useLogo, useAccount } from '@/composables';
+import { indexApi } from "@api/index";
+import PapayaImage from "@components/papaya-image.vue";
+import axios from "axios";
+
+const props = defineProps({
+  accountSelectedInfos: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const emit = defineEmits(['update:account-selected-infos'])
+
+// 计算已选择的账户数量
+const accountSelectedCount = computed(() => {
+  return props.accountSelectedInfos?.length || 0
+})
 
 // 注入父组件提供的提交方法
-const handleSubmitFromParent = inject('handleSubmit', null);
+const handleSubmitFromParent = inject("handleSubmit", null);
 
 const accountDialogVisible = ref(false);
 const configDialogVisible = ref(false);
 const logoDialogVisible = ref(false);
 
 // 站点和投放方式
-const selectedSite = ref('PT');
-const selectedMethod = ref('DC');
+const selectedSite = ref("");
+const selectedMethod = ref("DC");
+const adUnitCopy = ref([]);
 
-// 使用 Logo 管理 composable
-const { 
-  logos, 
-  selectedLogoIds, 
-  fetchLogos, 
-  setSelectedLogoIds,
-  deleteLogo: deleteLogoApi
-} = useLogo()
+// Logo 选中列表
+const selectedLogoIds = ref([]);
+const selectedLogos = selectedLogoIds;
 
-// 使用账户管理 composable
-const {
-  accounts,
-  fetchAccounts,
-  selectAccounts
-} = useAccount()
+// 记录上一次的站点值
+const previousSite = ref("");
 
-// Logo 数据映射
-const logoMap = computed(() => {
-  const map = {}
-  logos.value.forEach(logo => {
-    map[logo.id] = logo.url
-  })
-  return map
-})
+onMounted(async () => {
+  getAdUnitCopy();
+});
+
+// 监听站点变化，清空logo数据
+watch(selectedSite, (newSite, oldSite) => {
+  if (oldSite !== "" && newSite !== oldSite) {
+    selectedLogoIds.value = [];
+    ElMessage.info("站点已切换，已清空logo选择");
+  }
+  previousSite.value = newSite;
+});
+
+const getAdUnitCopy = async () => {
+  const res = await indexApi.getAdUnitCopy();
+  // const res = await axios.get("http://new.sp.com/pub/get_project_info");
+  adUnitCopy.value = res.result;
+};
 
 function getLogoUrl(id) {
-  return logoMap.value[id] || '';
+  return "";
 }
-
-// 组件挂载时获取数据
-onMounted(async () => {
-  await Promise.all([
-    fetchLogos(),
-    fetchAccounts()
-  ])
-})
 
 function openAccountDialog() {
   accountDialogVisible.value = true;
@@ -127,8 +154,8 @@ function openLogoDialog() {
 }
 
 function onAccountConfirm(rows) {
-  console.log("selected accounts:", rows);
-  ElMessage.success(`已选择 ${rows.length} 个账户`)
+  emit('update:account-selected-infos', rows)
+  ElMessage.success(`已选择 ${rows.length} 个账户`);
 }
 
 function onConfigConfirm(rows) {
@@ -136,31 +163,30 @@ function onConfigConfirm(rows) {
 }
 
 function onLogoConfirm(logoIds) {
-  setSelectedLogoIds(logoIds)
-  ElMessage.success(`已选择 ${logoIds.length} 个logo`)
+  selectedLogoIds.value = logoIds;
+  ElMessage.success(`已选择 ${logoIds.length} 个logo`);
 }
 
-async function removeLogo(logoId) {
-  await deleteLogoApi(logoId)
-  const newLogoIds = selectedLogoIds.value.filter(id => id !== logoId)
-  setSelectedLogoIds(newLogoIds)
+function removeLogo(logoId) {
+  selectedLogoIds.value = selectedLogoIds.value.filter((id) => id !== logoId);
+  ElMessage.success("已删除logo");
 }
 
 // 提交
 const handleSubmit = () => {
   if (handleSubmitFromParent) {
-    handleSubmitFromParent()
+    handleSubmitFromParent();
   } else {
-    ElMessage.warning('提交功能不可用')
+    ElMessage.warning("提交功能不可用");
   }
-}
+};
 
 // 暴露给父组件的方法
 defineExpose({
   selectedSite,
   selectedMethod,
-  selectedLogoIds
-})
+  selectedLogoIds,
+});
 </script>
 
 <style scoped>
@@ -227,8 +253,6 @@ defineExpose({
 }
 .logo-icon {
   position: relative;
-  width: 36px;
-  height: 36px;
   border-radius: 6px;
   overflow: visible;
   border: 1px solid #e0e3eb;
@@ -282,6 +306,12 @@ defineExpose({
   transition: all 0.3s ease;
   color: #909399;
 }
+.account-count {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .logo-add:hover {
   border-color: #409eff;
   color: #409eff;
