@@ -70,7 +70,6 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import progressBar from "@/components/progress-bar.vue";
 import placeholderImage from "@/assets/placeholder-image.png";
 import failImage from "@/assets/fail-image.png";
 import loadingImageSvg from "@/assets/loading-image.svg?url";

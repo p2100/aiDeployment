@@ -23,7 +23,8 @@ a:hover {
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
+  /* min-height: 100vh; */
+  height: 100%;
   background: #f5f7fa; /* 统一背景，避免出现大面积黑色 */
 }
 
@@ -55,9 +56,14 @@ button:focus-visible {
   padding: 2em;
 }
 
+html, body {
+  height: 100%;
+}
+
 #app {
   width: 100%;
-  height: 100vh;
+  height: 100%;
+  /* height: 100vh; */
   text-align: initial;
   padding: 0;
 }

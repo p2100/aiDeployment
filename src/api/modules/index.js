@@ -5,14 +5,15 @@ import request from '../request'
 export function getAdUnitCopy(data) {
   return request({
     url: '/api/pub/get_project_info',
-    method: 'get',
+    method: 'post',
+    data: data || {}
   })
 }
 
 // logo查询
 export function getLogoImages(data) {
   return request({
-    url: '/api/material_square/auto_ads/placement/get_logo_images',
+    url: '/api/auto_ads/get_logo_images',
     method: 'get',
     params: data || {}
   })
@@ -21,7 +22,7 @@ export function getLogoImages(data) {
 // 素材查询
 export function getMaterials(data) {
   return request({
-    url: '/ai/material/get_materials',
+    url: '/api/material/get_materials',
     method: 'post',
     data: data || {}
   })
@@ -30,7 +31,7 @@ export function getMaterials(data) {
 // 账户查询
 export function getAccountInfos(data) {
   return request({
-    url: '/api/material_square/auto_ads/placement/get_account_infos',
+    url: '/api/auto_ads/get_account_infos',
     method: 'post',
     data: data || {}
   })
@@ -39,7 +40,7 @@ export function getAccountInfos(data) {
 // 用户查询
 export function getUserAccountInfo(data) {
   return request({
-    url: '/ai/user/get_account_info',
+    url: '/api/user/get_account_info',
     method: 'get',
     data: data || {}
   })
@@ -48,7 +49,7 @@ export function getUserAccountInfo(data) {
 // campaign配置查询
 export function getCampaignConfigs(data) {
   return request({
-    url: '/api/material_square/auto_ads/placement/get_campaign_configs',
+    url: '/api/auto_ads/get_campaign_configs',
     method: 'post',
     data: data || {}
   })
@@ -57,7 +58,7 @@ export function getCampaignConfigs(data) {
 // 一键填充查询
 export function getCampaignTemplateList(data) {
   return request({
-    url: '/api/material_square/auto_ads/placement/get_campaign_template_list',
+    url: '/api/auto_ads/get_campaign_template_list',
     method: 'post',
     data: data || {}
   })
@@ -66,7 +67,7 @@ export function getCampaignTemplateList(data) {
 // 投放
 export function getAdTask(data) {
   return request({
-    url: '/ai/material_square/ad_task',
+    url: '/api/auto_ads/ad_task',
     method: 'post',
     data: data || {}
   })

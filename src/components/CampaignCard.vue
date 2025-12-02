@@ -534,13 +534,12 @@ const selectCampaignConfig = () => {
 };
 
 const onCampaignConfirm = (selectedCampaigns) => {
+  // 保留所有原始数据字段，只添加 site 字段
   const newConfigs = selectedCampaigns.map((camp) => ({
-    site: props.site || "",
-    campaign: camp.name_loc || camp.campaig || "campaign",
-    country: camp.country || "",
-    cpa: camp.cpa || "0.2",
-    budget: camp.budget || "0",
-    schedule: camp.schedule || [],
+    ...camp, // 保留所有原始字段
+    // site: props.site || "", // 添加 site 字段
+    // 为了兼容性，保留 campaign 字段（从 name_loc 或 campaig 获取）
+    campaign: camp.name_loc || camp.campaig || camp.campaign || "campaign",
   }));
 
   if (!props.data.campaign_configs) {
@@ -624,7 +623,6 @@ const getTemplateList = async () => {
   try {
     // 获取远程模板
     const res = await indexApi.getCampaignTemplateList();
-    // const res = await axios.post("http://new.sp.com/material_square/auto_ads/placement/get_campaign_template_list");
     const remoteTemplates = res.result?.data || res.result || [];
     
     // 处理本地模板：添加 reqNum 和 _id（参考 sp 项目）
@@ -675,7 +673,7 @@ const getTemplateList = async () => {
   }
 };
 
-// 下拉菜单显示/隐藏时获取模板列表
+// 下拉菜单显示/隐藏时获取模板列表（只加载一次）
 const onDropdownVisibleChange = (visible) => {
   if (visible) {
     getTemplateList();

@@ -89,7 +89,6 @@ const getLogoImages = async () => {
   if (props.site) {
     params.project = props.site;
     const res = await indexApi.getLogoImages(params);
-    // const res = await axios.get("http://new.sp.com/material_square/auto_ads/placement/get_logo_images", { params });
     logos.value = res.result;
   }
 };

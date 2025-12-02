@@ -90,11 +90,6 @@ const getCampaignConfigs = async () => {
       site: props.site,
       create_user: props.accountUserInfo.username
     })
-    // const res = await axios.post("http://new.sp.com/material_square/auto_ads/placement/get_campaign_configs", {
-    //   campaign_type: props.method,
-    //   site: props.site,
-    //   create_user: props.accountUserInfo.username
-    // })
     campaignConfigs.value = res.result || []
   } catch (error) {
     console.error('获取 Campaign 配置失败:', error)
@@ -177,7 +172,9 @@ defineExpose({ syncConfigToAllCards, syncAllDataToOtherCards })
 .campaign-grid {
   padding: 20px;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eaed 100%);
-  min-height: calc(100vh - 120px);
+  // min-height: calc(100vh - 120px);
+  // height: calc(100% - 56px);
+  // height: 100%;
 
   :deep(.el-col) {
     margin-bottom: 20px;

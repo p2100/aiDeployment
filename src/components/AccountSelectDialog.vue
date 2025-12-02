@@ -222,7 +222,6 @@
       }
       
       const res = await indexApi.getAccountInfos(params)
-      // const res = await axios.post("http://new.sp.com/material_square/auto_ads/placement/get_account_infos", params);
       accountInfos.value = res.result.data || []
       total.value = res.result.total || 0
       

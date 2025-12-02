@@ -77,18 +77,26 @@ const selectedMethod = computed(() => {
   return topBarRef.value?.selectedMethod || "DC";
 });
 
-// 监听站点变化，清空所有卡片的logo数据和已选账户信息
+// 监听站点变化，清空所有卡片的logo数据、Campaign配置、号召性文字、campaign数据和已选账户信息
 const previousSite = ref("");
 watch(selectedSite, (newSite, oldSite) => {
   if (oldSite !== "" && newSite !== oldSite) {
     campaignSets.value.forEach((item) => {
+      // 清空logo数据
       item.logo_ids = [];
+      // 清空Campaign配置
+      item.campaign_configs = [];
+      // 清空号召性文字
+      item.call_to_action_text = "";
+      item.call_to_action_lang = "";
+      // 清空campaign数据
+      item.campaigns = [];
     });
     // 清空已选账户信息
     if (accountSelectedInfos.value.length > 0) {
       accountSelectedInfos.value = [];
-      ElMessage.info("站点已切换，已清空账户信息");
     }
+    ElMessage.info("站点已切换，已清空所有配置数据");
   }
   previousSite.value = newSite;
 });
@@ -143,13 +151,13 @@ const handleSubmit = async () => {
     const method = topBarRef.value?.selectedMethod || "DC";
     const logoIds = topBarRef.value?.selectedLogoIds || [];
 
-    // 扁平化 campaign_configs：将所有卡片的 campaign_configs 合并成一个数组
-    const allCampaignConfigs = campaignSets.value.reduce((acc, item) => {
-      if (item.campaign_configs && Array.isArray(item.campaign_configs)) {
-        acc.push(...item.campaign_configs);
-      }
-      return acc;
-    }, []);
+    // // 扁平化 campaign_configs：将所有卡片的 campaign_configs 合并成一个数组
+    // const allCampaignConfigs = campaignSets.value.reduce((acc, item) => {
+    //   if (item.campaign_configs && Array.isArray(item.campaign_configs)) {
+    //     acc.push(...item.campaign_configs);
+    //   }
+    //   return acc;
+    // }, []);
 
     // 转换 campaigns 数据结构
     const transformCampaigns = (campaigns) => {
@@ -213,25 +221,34 @@ const handleSubmit = async () => {
         return transformedCampaign;
       });
     };
-
+    console.log(accountSelectedInfos.value)
     // 准备提交数据
     const submitData = {
       campaign_num: campaignSets.value.length, // 卡片总数
-      campaign_sets: campaignSets.value.map((item) => ({
+      campaign_sets: campaignSets.value.map((item, index) => ({
+        campaign_sets_index: index,
         site: site,
         method: method,
-        logo_ids: item.logo_ids || [],
+        // logo_ids: item.logo_ids || [],
         call_to_action_text: item.call_to_action_text || "",
         call_to_action_lang: item.call_to_action_lang || "",
-        campaigns: transformCampaigns(item.campaigns || []), // 转换后的卡片数据
+        campaigns: transformCampaigns(item.campaigns || []).map((item1) => ({
+          ...item1,
+          logo_ids:  item.logo_ids,
+        })), // 转换后的卡片数据
+        campaign_configs: item.campaign_configs || [], // campaign配置选择数据（扁平化后的数组）
       })), // 卡片数据
-      campaign_configs: allCampaignConfigs, // campaign配置选择数据（扁平化后的数组）
       customer_infos: accountSelectedInfos.value.map((item) => ({
-        customer_id: item.customer_id,
-        customer_name: item.customer_name,
+        customer_id: item.id,
+        mccid: item.mcc_id,
+        asset_set_id: null,
+        audience_id: null
       })), // 账户选择信息
       logo_ids: logoIds, // logo选择信息
       site: site, // 站点信息
+      use_feed: false,
+      use_audience: false,
+      category: "image",
     };
 
     // TODO: 调用提交接口
@@ -259,16 +276,14 @@ defineExpose({
 
 <template>
   <div class="common-layout">
-    <el-container>
-      <el-header>
-        <TopBar
-          ref="topBarRef"
-          :account-selected-infos="accountSelectedInfos"
-          @update:account-selected-infos="accountSelectedInfos = $event"
-        />
-      </el-header>
-      <el-container>
-        <el-aside><SideBar ref="sidebarRef" :site="selectedSite" /></el-aside>
+    <el-container direction="vertical">
+      <TopBar
+        ref="topBarRef"
+        :account-selected-infos="accountSelectedInfos"
+        @update:account-selected-infos="accountSelectedInfos = $event"
+      />
+      <el-container class="content-container">
+        <SideBar ref="sidebarRef" :site="selectedSite" />
         <el-main>
           <div class="scroll">
             <CampaignGrid
@@ -292,10 +307,15 @@ defineExpose({
 
 <style scoped lang="scss">
 .common-layout {
-  height: 100vh;
+  position: relative;
+  width: 100%;
+  height: 100%;
 
   .el-container {
     height: 100%;
+  }
+  .content-container{
+    height: calc(100% - 56px);
   }
 
   .el-header {
@@ -305,13 +325,16 @@ defineExpose({
 
   .el-aside {
     width: 400px;
-    height: calc(100vh - 61px); //61px为顶部header盒子高度
+    // height: calc(100vh - 61px); //61px为顶部header盒子高度
+    // height: calc(100% - 61px);
+    height: 100%;
     overflow-y: auto;
   }
 
   .el-main {
     padding: 0 !important;
-    height: calc(100vh - 61px); //61px为顶部header盒子高度
+    // height: calc(100vh - 61px); //61px为顶部header盒子高度
+    height: 100%;
     overflow-y: auto;
     display: flex;
     flex-direction: column;

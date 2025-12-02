@@ -18,13 +18,31 @@
         
         <!-- 筛选条件面板 -->
         <div class="filter-dropdown">
-
+          <!-- 站点筛选 -->
           <div class="filter-section">
-            <div class="filter-label">designer_name</div>
+            <div class="filter-label">站点 (site)</div>
+            <el-checkbox-group v-model="filters.site">
+              <el-checkbox 
+                v-for="siteOption in uniqueSites" 
+                :key="siteOption" 
+                :label="siteOption"
+              >
+                {{ siteOption }}
+              </el-checkbox>
+            </el-checkbox-group>
+          </div>
+
+          <!-- 设计师筛选 -->
+          <div class="filter-section">
+            <div class="filter-label">设计师名 (designer_name)</div>
             <el-checkbox-group v-model="filters.designer">
-              <el-checkbox label="杜思颖">杜思颖</el-checkbox>
-              <el-checkbox label="张三">张三</el-checkbox>
-              <el-checkbox label="李四">李四</el-checkbox>
+              <el-checkbox 
+                v-for="designerOption in uniqueDesigners" 
+                :key="designerOption" 
+                :label="designerOption"
+              >
+                {{ designerOption }}
+              </el-checkbox>
             </el-checkbox-group>
           </div>
         </div>
@@ -96,7 +114,8 @@ const loading = ref(false)
 const filters = ref({
   language: [],
   tag: [],
-  designer: []
+  designer: [],
+  site: []
 })
 
 // 对话框状态
@@ -151,13 +170,37 @@ onMounted(() => {
   }
 })
 
+// 从素材数据中提取唯一的站点值
+const uniqueSites = computed(() => {
+  const sites = new Set()
+  materials.value.forEach(item => {
+    if (item.site) {
+      sites.add(item.site)
+    }
+  })
+  return Array.from(sites).sort()
+})
+
+// 从素材数据中提取唯一的设计师名
+const uniqueDesigners = computed(() => {
+  const designers = new Set()
+  materials.value.forEach(item => {
+    const designerName = item.designer_name || item.designer
+    if (designerName) {
+      designers.add(designerName)
+    }
+  })
+  return Array.from(designers).sort()
+})
+
 // 筛选后的素材
 const filteredMaterials = computed(() => {
   return materials.value.filter(item => {
     const languageMatch = filters.value.language.length === 0 || filters.value.language.includes(item.language)
     const tagMatch = filters.value.tag.length === 0 || filters.value.tag.includes(item.tag)
     const designerMatch = filters.value.designer.length === 0 || filters.value.designer.includes(item.designer || item.designer_name)
-    return languageMatch && tagMatch && designerMatch
+    const siteMatch = filters.value.site.length === 0 || filters.value.site.includes(item.site)
+    return languageMatch && tagMatch && designerMatch && siteMatch
   })
 })
 

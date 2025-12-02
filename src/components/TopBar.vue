@@ -1,6 +1,6 @@
 <template>
   <el-header height="56px" class="topbar">
-    <div class="left">快速投放</div>
+    <div class="left"></div>
     <div class="right">
       <div class="select-group">
         <div class="select-item">
@@ -128,14 +128,13 @@ onMounted(async () => {
 watch(selectedSite, (newSite, oldSite) => {
   if (oldSite !== "" && newSite !== oldSite) {
     selectedLogoIds.value = [];
-    ElMessage.info("站点已切换，已清空logo选择");
+    // ElMessage.info("站点已切换，已清空logo选择");
   }
   previousSite.value = newSite;
 });
 
 const getAdUnitCopy = async () => {
   const res = await indexApi.getAdUnitCopy();
-  // const res = await axios.get("http://new.sp.com/pub/get_project_info");
   adUnitCopy.value = res.result;
 };
 
