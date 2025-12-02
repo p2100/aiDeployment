@@ -151,6 +151,65 @@ const handleSubmit = async () => {
     const method = topBarRef.value?.selectedMethod || "DC";
     const logoIds = topBarRef.value?.selectedLogoIds || [];
 
+    // 校验必填项
+    // 1. 校验站点
+    if (!site) {
+      ElMessage.warning("请选择站点");
+      return;
+    }
+
+    // 2. 校验投放方式
+    if (!method) {
+      ElMessage.warning("请选择投放方式");
+      return;
+    }
+
+    // 3. 校验logo
+    if (!logoIds || logoIds.length === 0) {
+      ElMessage.warning("请至少选择一个logo");
+      return;
+    }
+
+    // 4. 校验账户信息
+    if (!accountSelectedInfos.value || accountSelectedInfos.value.length === 0) {
+      ElMessage.warning("请至少选择一个账户信息");
+      return;
+    }
+
+    // 5. 校验Campaign卡片里的campaign配置和campaign
+    if (!campaignSets.value || campaignSets.value.length === 0) {
+      ElMessage.warning("请至少添加一个Campaign卡片");
+      return;
+    }
+
+    // 检查每个卡片是否有campaign配置、campaign和号召性文字
+    for (let i = 0; i < campaignSets.value.length; i++) {
+      const item = campaignSets.value[i];
+      
+      // 校验campaign配置
+      if (!item.campaign_configs || !Array.isArray(item.campaign_configs) || item.campaign_configs.length === 0) {
+        ElMessage.warning(`第 ${i + 1} 个Campaign卡片缺少campaign配置，请添加campaign配置`);
+        return;
+      }
+
+      // 校验campaign
+      if (!item.campaigns || !Array.isArray(item.campaigns) || item.campaigns.length === 0) {
+        ElMessage.warning(`第 ${i + 1} 个Campaign卡片缺少campaign数据，请添加campaign`);
+        return;
+      }
+
+      // 校验号召性文字
+      if (!item.call_to_action_text || item.call_to_action_text.trim() === "") {
+        ElMessage.warning(`第 ${i + 1} 个Campaign卡片缺少号召性文字，请选择号召性文字`);
+        return;
+      }
+
+      if (!item.call_to_action_lang || item.call_to_action_lang.trim() === "") {
+        ElMessage.warning(`第 ${i + 1} 个Campaign卡片缺少号召性文字语言，请选择号召性文字语言`);
+        return;
+      }
+    }
+
     // // 扁平化 campaign_configs：将所有卡片的 campaign_configs 合并成一个数组
     // const allCampaignConfigs = campaignSets.value.reduce((acc, item) => {
     //   if (item.campaign_configs && Array.isArray(item.campaign_configs)) {
@@ -234,8 +293,8 @@ const handleSubmit = async () => {
         call_to_action_lang: item.call_to_action_lang || "",
         campaigns: transformCampaigns(item.campaigns || []).map((item1) => ({
           ...item1,
-          logo_ids:  item.logo_ids,
-        })), // 转换后的卡片数据
+          logo_ids: item.logo_ids.map((item2) => item2._id),
+        })),
         campaign_configs: item.campaign_configs || [], // campaign配置选择数据（扁平化后的数组）
       })), // 卡片数据
       customer_infos: accountSelectedInfos.value.map((item) => ({
@@ -244,12 +303,22 @@ const handleSubmit = async () => {
         asset_set_id: null,
         audience_id: null
       })), // 账户选择信息
-      logo_ids: logoIds, // logo选择信息
+      logo_ids: logoIds.map((item) => item._id),
       site: site, // 站点信息
       use_feed: false,
       use_audience: false,
       category: "image",
     };
+    submitData.campaign_sets.forEach((item) => {
+      item.campaigns.forEach((item1) => {
+         item1.ad_groups.forEach((item2) => {
+          item2.ad_units.forEach((item3) => {
+            item3.material_id = item3._id;
+            delete item3._id;
+          });
+         });
+      });
+    });
 
     // TODO: 调用提交接口
     await indexApi.getAdTask(submitData);

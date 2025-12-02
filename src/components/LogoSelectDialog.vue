@@ -70,15 +70,26 @@ const dialogVisible = computed({
 // Logo 列表数据
 const logos = ref([]);
 
-// 当前选中的 logo IDs
-const selectedIds = ref([...props.selectedLogos]);
+// 当前选中的 logo 对象数组
+const selectedLogos = ref([]);
 
 // 监听弹窗打开，重新获取数据
 watch(
   () => props.modelValue,
   (newVal) => {
     if (newVal) {
-      selectedIds.value = [...props.selectedLogos];
+      // 兼容处理：如果传入的是字符串数组，转换为对象数组
+      if (props.selectedLogos && props.selectedLogos.length > 0) {
+        if (typeof props.selectedLogos[0] === 'string') {
+          // 如果是字符串数组，需要从 logos 中找到对应的对象
+          selectedLogos.value = [];
+        } else {
+          // 如果已经是对象数组，直接使用
+          selectedLogos.value = [...props.selectedLogos];
+        }
+      } else {
+        selectedLogos.value = [];
+      }
       getLogoImages();
     }
   }
@@ -89,22 +100,32 @@ const getLogoImages = async () => {
   if (props.site) {
     params.project = props.site;
     const res = await indexApi.getLogoImages(params);
-    logos.value = res.result;
+    logos.value = res.result || [];
+    
+    // 如果 selectedLogos 是字符串数组，转换为对象数组
+    if (props.selectedLogos && props.selectedLogos.length > 0 && typeof props.selectedLogos[0] === 'string') {
+      selectedLogos.value = props.selectedLogos
+        .map(logoName => logos.value.find(logo => logo.logo_name === logoName))
+        .filter(logo => logo !== undefined);
+    }
   }
 };
 
-// 判断是否选中
-const isSelected = (id) => {
-  return selectedIds.value.includes(id);
+// 判断是否选中（通过 logo_name 比较）
+const isSelected = (logoName) => {
+  return selectedLogos.value.some(logo => logo.logo_name === logoName);
 };
 
 // 切换选中状态
-const toggleSelect = (id) => {
-  const index = selectedIds.value.indexOf(id);
+const toggleSelect = (logoName) => {
+  const logo = logos.value.find(l => l.logo_name === logoName);
+  if (!logo) return;
+  
+  const index = selectedLogos.value.findIndex(l => l.logo_name === logoName);
   if (index > -1) {
-    selectedIds.value.splice(index, 1);
+    selectedLogos.value.splice(index, 1);
   } else {
-    selectedIds.value.push(id);
+    selectedLogos.value.push(logo);
   }
 };
 
@@ -121,14 +142,15 @@ const handleClose = () => {
 
 // 确认
 const handleConfirm = () => {
-  emit("confirm", selectedIds.value);
+  // 传递完整的 logo 对象数组
+  emit("confirm", selectedLogos.value);
   handleClose();
 };
 </script>
 
 <style scoped>
 .logo-select-content {
-  /* padding: 20px 0; */
+  padding: 0;
 }
 
 .logo-actions {

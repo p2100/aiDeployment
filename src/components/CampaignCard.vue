@@ -26,15 +26,15 @@
           <el-icon class="help-icon"><QuestionFilled /></el-icon>:
         </div>
         <div class="logo-list">
-          <div v-for="logoId in data.logo_ids" :key="logoId" class="logo-item">
+          <div v-for="logo in data.logo_ids" :key="getLogoKey(logo)" class="logo-item">
             <papaya-image
-              :src="`https://static.spga.xyz/${logoId}`"
-              :preview="[`https://static.spga.xyz/${logoId}`]"
+              :src="`https://static.spga.xyz/${getLogoName(logo)}`"
+              :preview="[`https://static.spga.xyz/${getLogoName(logo)}`]"
               fit="contain"
               width="40"
               height="40"
             ></papaya-image>
-            <el-icon class="logo-remove" @click="removeLogo(logoId)"
+            <el-icon class="logo-remove" @click="removeLogo(logo)"
               ><Close
             /></el-icon>
           </div>
@@ -313,7 +313,7 @@
     <!-- Logo选择对话框 -->
     <LogoSelectDialog
       v-model="logoDialogVisible"
-      :selected-logos="data.logo_ids || []"
+      :selected-logos="normalizeLogosForDialog(data.logo_ids || [])"
       :site="props.site"
       @confirm="onLogoConfirm"
     />
@@ -452,17 +452,54 @@ const getLogoUrl = (logoId) => {
   return logoMap.value[logoId] || "";
 };
 
+// 标准化 logos 数据用于传递给对话框（兼容字符串数组和对象数组）
+const normalizeLogosForDialog = (logos) => {
+  if (!logos || logos.length === 0) {
+    return [];
+  }
+  // 如果已经是对象数组，直接返回
+  if (typeof logos[0] === 'object' && logos[0] !== null) {
+    return logos;
+  }
+  // 如果是字符串数组，转换为对象数组（只包含 logo_name）
+  return logos.map(logoName => ({ logo_name: logoName }));
+};
+
 const openLogoDialog = () => {
   logoDialogVisible.value = true;
 };
 
-const onLogoConfirm = (logoIds) => {
-  props.data.logo_ids = logoIds;
-  ElMessage.success(`已选择 ${logoIds.length} 个logo`);
+const onLogoConfirm = (selectedLogos) => {
+  // 接收完整的 logo 对象数组
+  props.data.logo_ids = selectedLogos;
+  ElMessage.success(`已选择 ${selectedLogos.length} 个logo`);
 };
 
-const removeLogo = (logoId) => {
-  const index = props.data.logo_ids.indexOf(logoId);
+// 获取 logo 的唯一标识（兼容字符串和对象）
+const getLogoKey = (logo) => {
+  if (typeof logo === 'string') {
+    return logo;
+  }
+  return logo.logo_name || logo._id || JSON.stringify(logo);
+};
+
+// 获取 logo 名称（兼容字符串和对象）
+const getLogoName = (logo) => {
+  if (typeof logo === 'string') {
+    return logo;
+  }
+  return logo.logo_name || '';
+};
+
+const removeLogo = (logo) => {
+  // 兼容处理：支持对象和字符串
+  const index = props.data.logo_ids.findIndex(item => {
+    if (typeof logo === 'string') {
+      return item === logo || (typeof item === 'object' && item.logo_name === logo);
+    } else {
+      return (typeof item === 'object' && item.logo_name === logo.logo_name) || item === logo;
+    }
+  });
   if (index > -1) {
     props.data.logo_ids.splice(index, 1);
   }

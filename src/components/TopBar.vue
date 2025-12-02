@@ -33,15 +33,15 @@
       <div class="logo-section">
         <span class="logo-label">logo:</span>
         <div class="logo-list">
-          <div v-for="logoId in selectedLogos" :key="logoId" class="logo-icon">
+          <div v-for="logo in selectedLogos" :key="getLogoKey(logo)" class="logo-icon">
             <papaya-image
-              :src="`https://static.spga.xyz/${logoId}`"
-              :preview="[`https://static.spga.xyz/${logoId}`]"
+              :src="`https://static.spga.xyz/${getLogoName(logo)}`"
+              :preview="[`https://static.spga.xyz/${getLogoName(logo)}`]"
               fit="contain"
               width="36"
               height="36"
             ></papaya-image>
-            <div class="logo-delete" @click.stop="removeLogo(logoId)">
+            <div class="logo-delete" @click.stop="removeLogo(logo)">
               <el-icon><Close /></el-icon>
             </div>
           </div>
@@ -71,7 +71,7 @@
   />
   <LogoSelectDialog
     v-model="logoDialogVisible"
-    :selected-logos="selectedLogos"
+    :selected-logos="normalizeLogosForDialog(selectedLogos)"
     :site="selectedSite"
     @confirm="onLogoConfirm"
   />
@@ -113,9 +113,8 @@ const selectedSite = ref("");
 const selectedMethod = ref("DC");
 const adUnitCopy = ref([]);
 
-// Logo 选中列表
-const selectedLogoIds = ref([]);
-const selectedLogos = selectedLogoIds;
+// Logo 选中列表（存储完整的 logo 对象数组）
+const selectedLogos = ref([]);
 
 // 记录上一次的站点值
 const previousSite = ref("");
@@ -127,7 +126,7 @@ onMounted(async () => {
 // 监听站点变化，清空logo数据
 watch(selectedSite, (newSite, oldSite) => {
   if (oldSite !== "" && newSite !== oldSite) {
-    selectedLogoIds.value = [];
+    selectedLogos.value = [];
     // ElMessage.info("站点已切换，已清空logo选择");
   }
   previousSite.value = newSite;
@@ -161,13 +160,50 @@ function onConfigConfirm(rows) {
   console.log("selected campaigns:", rows);
 }
 
-function onLogoConfirm(logoIds) {
-  selectedLogoIds.value = logoIds;
-  ElMessage.success(`已选择 ${logoIds.length} 个logo`);
+// 标准化 logos 数据用于传递给对话框（兼容字符串数组和对象数组）
+function normalizeLogosForDialog(logos) {
+  if (!logos || logos.length === 0) {
+    return [];
+  }
+  // 如果已经是对象数组，直接返回
+  if (typeof logos[0] === 'object' && logos[0] !== null) {
+    return logos;
+  }
+  // 如果是字符串数组，转换为对象数组（只包含 logo_name）
+  return logos.map(logoName => ({ logo_name: logoName }));
 }
 
-function removeLogo(logoId) {
-  selectedLogoIds.value = selectedLogoIds.value.filter((id) => id !== logoId);
+// 获取 logo 的唯一标识（兼容字符串和对象）
+function getLogoKey(logo) {
+  if (typeof logo === 'string') {
+    return logo;
+  }
+  return logo.logo_name || logo._id || JSON.stringify(logo);
+}
+
+// 获取 logo 名称（兼容字符串和对象）
+function getLogoName(logo) {
+  if (typeof logo === 'string') {
+    return logo;
+  }
+  return logo.logo_name || '';
+}
+
+function onLogoConfirm(selectedLogosArray) {
+  // 接收完整的 logo 对象数组
+  selectedLogos.value = selectedLogosArray;
+  ElMessage.success(`已选择 ${selectedLogosArray.length} 个logo`);
+}
+
+function removeLogo(logo) {
+  // 兼容处理：支持对象和字符串
+  selectedLogos.value = selectedLogos.value.filter(item => {
+    if (typeof logo === 'string') {
+      return item !== logo && (typeof item !== 'object' || item.logo_name !== logo);
+    } else {
+      return (typeof item !== 'object' || item.logo_name !== logo.logo_name) && item !== logo;
+    }
+  });
   ElMessage.success("已删除logo");
 }
 
@@ -184,7 +220,8 @@ const handleSubmit = () => {
 defineExpose({
   selectedSite,
   selectedMethod,
-  selectedLogoIds,
+  // 返回完整的 logo 对象数组
+  selectedLogoIds: computed(() => selectedLogos.value),
 });
 </script>
 

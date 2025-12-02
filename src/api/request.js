@@ -2,8 +2,13 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 // 创建 axios 实例
+// 开发环境使用代理，生产环境使用直接URL
+const baseURL = import.meta.env.DEV 
+  ? '/api'  // 开发环境：使用代理配置
+  : 'http://172.18.188.6:8002/'  // 生产环境：直接使用接口地址
+
 const request = axios.create({
-  baseURL: '/',  // 使用代理配置
+  baseURL: baseURL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json;charset=UTF-8'

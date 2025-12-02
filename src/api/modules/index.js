@@ -4,7 +4,7 @@ import request from '../request'
 // 站点查询
 export function getAdUnitCopy(data) {
   return request({
-    url: '/api/pub/get_project_info',
+    url: '/pub/get_project_info',
     method: 'post',
     data: data || {}
   })
@@ -13,7 +13,7 @@ export function getAdUnitCopy(data) {
 // logo查询
 export function getLogoImages(data) {
   return request({
-    url: '/api/auto_ads/get_logo_images',
+    url: '/auto_ads/get_logo_images',
     method: 'get',
     params: data || {}
   })
@@ -22,7 +22,7 @@ export function getLogoImages(data) {
 // 素材查询
 export function getMaterials(data) {
   return request({
-    url: '/api/material/get_materials',
+    url: '/material/get_materials',
     method: 'post',
     data: data || {}
   })
@@ -31,7 +31,7 @@ export function getMaterials(data) {
 // 账户查询
 export function getAccountInfos(data) {
   return request({
-    url: '/api/auto_ads/get_account_infos',
+    url: '/auto_ads/get_account_infos',
     method: 'post',
     data: data || {}
   })
@@ -40,7 +40,7 @@ export function getAccountInfos(data) {
 // 用户查询
 export function getUserAccountInfo(data) {
   return request({
-    url: '/api/user/get_account_info',
+    url: '/user/get_account_info',
     method: 'get',
     data: data || {}
   })
@@ -49,7 +49,7 @@ export function getUserAccountInfo(data) {
 // campaign配置查询
 export function getCampaignConfigs(data) {
   return request({
-    url: '/api/auto_ads/get_campaign_configs',
+    url: '/auto_ads/get_campaign_configs',
     method: 'post',
     data: data || {}
   })
@@ -58,7 +58,7 @@ export function getCampaignConfigs(data) {
 // 一键填充查询
 export function getCampaignTemplateList(data) {
   return request({
-    url: '/api/auto_ads/get_campaign_template_list',
+    url: '/auto_ads/get_campaign_template_list',
     method: 'post',
     data: data || {}
   })
@@ -67,7 +67,7 @@ export function getCampaignTemplateList(data) {
 // 投放
 export function getAdTask(data) {
   return request({
-    url: '/api/auto_ads/ad_task',
+    url: '/auto_ads/ad_task',
     method: 'post',
     data: data || {}
   })
